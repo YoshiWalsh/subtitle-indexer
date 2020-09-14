@@ -24,30 +24,36 @@ CREATE TABLE `files` (
     CONSTRAINT fk_file_library FOREIGN KEY(libraryId) REFERENCES libraries(id) ON DELETE CASCADE
 );
 CREATE INDEX `file_path_idx` ON files(path);
+CREATE INDEX `file_library_idx` ON files(libraryId);
+CREATE INDEX `file_stillExists_idx` ON files(stillExists);
+CREATE INDEX `file_indexed_idx` ON files(indexed);
 
 CREATE TABLE `tracks` (
     id INTEGER PRIMARY KEY,
-    fileId INTEGER,
-    trackNumber INTEGER,
+    fileId INTEGER NOT NULL,
+    trackNumber INTEGER NOT NULL,
+    type STRING NOT NULL,
     language STRING,
     title STRING,
+    subtitlePreambleJson STRING,
+    subtitleNondialogueEventsJson STRING,
     UNIQUE(fileId, trackNumber),
     CONSTRAINT fk_track_file FOREIGN KEY(fileId) REFERENCES files(id) ON DELETE CASCADE
 );
 
 CREATE TABLE `conversations` (
     id INTEGER PRIMARY KEY,
-    trackId INTEGER,
+    trackId INTEGER NOT NULL,
     indexedText TEXT,
     CONSTRAINT fk_conversation_track FOREIGN KEY(trackId) REFERENCES tracks(id) ON DELETE CASCADE
 );
 
 CREATE TABLE `lines` (
     id INTEGER PRIMARY KEY,
-    conversationId INTEGER,
+    conversationId INTEGER NOT NULL,
     startMs INTEGER,
     endMs INTEGER,
-    rawText TEXT,
+    subtitleEventJson TEXT,
     displayText TEXT,
     CONSTRAINT fk_line_conversation FOREIGN KEY(conversationId) REFERENCES conversations(id) ON DELETE CASCADE
 );

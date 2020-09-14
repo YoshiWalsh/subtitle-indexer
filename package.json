@@ -29,6 +29,7 @@
     "ffmpeg-stream": "^0.6.0",
     "ffprobe": "^1.1.2",
     "ffprobe-static": "^3.0.0",
+    "moment": "^2.27.0",
     "ts-demand": "^1.0.1"
   }
 }

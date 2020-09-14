@@ -8,6 +8,8 @@ import { path as ffprobeStatic } from 'ffprobe-static';
 import { Converter as FFMPEG } from 'ffmpeg-stream';
 import { default as ffmpegStatic } from 'ffmpeg-static';
 import { parse as parseAss, ParsedASSEvent } from 'ass-compiler';
+import { performance } from 'perf_hooks'; 
+import { duration } from 'moment';
 
 import { db } from './initialiseDb';
 import { Conversation, Existing, Library, LibraryFile, Line, Track } from './model';
@@ -63,7 +65,9 @@ export async function performScans() {
     }
 
     await checkLibraryExistence();
+    console.log("Scan");
     await scanFiles();
+    console.log("Index");
     await indexFiles();
 }
 
@@ -195,11 +199,15 @@ async function getFileHash(path: string): Promise<string> {
 
 export async function indexFiles() {
     const libraries = db.query<Existing<Library>>("SELECT * FROM libraries WHERE stillExists");
+    console.log("Preparing to index");
     for (const library of libraries) {
         const unindexed = db.query<Existing<LibraryFile>>("SELECT * FROM files WHERE libraryId=? AND stillExists AND NOT indexed", library.id);
-
+        const startTime = performance.now();
+        let count = 0;
         for (const file of unindexed) {
             await indexFile(library, file);
+            count++;
+            console.log(`Indexed ${count}/${unindexed.length} files in ${duration(performance.now() - startTime).humanize()} in library ${library.path}`);
         }
     }
 }
@@ -213,18 +221,33 @@ export async function indexFile(library: Existing<Library>, file: Existing<Libra
     const absolutePath = path.resolve(libraryRoot, library.path, file.path);
     const ffprobeResult = await ffprobe(absolutePath, ffprobeOptions).then(r => r, err => null);
 
-    const streams = ffprobeResult?.streams || [];
-    const subtitleStreams = streams.filter(s => s.codec_type as string === 'subtitle');
-    for(const stream of subtitleStreams) {
-        const track: Track = {
-            fileId: file.id,
-            trackNumber: stream.index,
-            language: stream.tags?.language || null,
-            title: (stream.tags as any)?.title || null
-        };
-        const trackId = db.insert('tracks', track);
+    console.log("Indexing file", absolutePath);
 
-        await indexTrack(absolutePath, trackId, stream.index);
+    const streams = ffprobeResult?.streams || [];
+    for(const stream of streams) {
+        const type = {
+            "video": "video",
+            "audio": "audio",
+            "subtitle": "subtitle",
+            "images": "video"
+        }[stream.codec_type];
+
+        if(type) {
+            const track: Track = {
+                fileId: file.id,
+                trackNumber: stream.index,
+                type: type as any,
+                language: stream.tags?.language || null,
+                title: (stream.tags as any)?.title || null,
+                subtitlePreambleJson: null,
+                subtitleNondialogueEventsJson: null
+            };
+            const trackId = db.insert('tracks', track);
+
+            if(type === "subtitle") {
+                await indexTrack(absolutePath, trackId, stream.index);
+            }
+        }
     }
     db.update<Partial<LibraryFile>>('files', {
         indexed: 1,
@@ -251,6 +274,27 @@ async function indexTrack(path: string, trackId: number, streamIndex: number) {
 
         const parsedAss = parseAss(rawAss);
         const dialogue = parsedAss.events.dialogue.sort((a, b) => a.Start - b.Start);
+        const preamble = {
+            info: parsedAss.info,
+            styles: parsedAss.styles,
+        };
+        const nonDialogue = {
+            format: parsedAss.events.format,
+            comment: parsedAss.events.comment,
+            /* Current unsupported by ass-compiler:
+            picture: parsedAss.events.picture,
+            movie: parsedAss.events.movie,
+            sound: parsedAss.events.sound,
+            command: parsedAss.events.command,
+            */
+        };
+
+        db.update<Partial<Track>>('tracks', {
+            subtitlePreambleJson: JSON.stringify(preamble),
+            subtitleNondialogueEventsJson: JSON.stringify(nonDialogue),
+        }, {
+            id: trackId
+        });
 
         let cursor = dialogue[0]?.Start || 0;
         let currentConversationLines: Array<ParsedASSEvent> = [];
@@ -271,7 +315,7 @@ async function indexTrack(path: string, trackId: number, streamIndex: number) {
                 for(const line of currentConversationLines) {
                     db.insert('lines', demand<Line>({
                         conversationId,
-                        rawText: line.Text.raw,
+                        subtitleEventJson: JSON.stringify(line),
                         displayText: line.Text.combined,
                         startMs: Math.round(line.Start * 1000),
                         endMs: Math.round(line.End * 1000),

@@ -20,8 +20,11 @@ export interface LibraryFile {
 export interface Track {
     fileId: number;
     trackNumber: number;
+    type: 'video' | 'audio' | 'subtitle';
     language: string | null;
     title: string | null;
+    subtitlePreambleJson: string | null;
+    subtitleNondialogueEventsJson: string | null;
 }
 
 export interface Conversation {
@@ -33,6 +36,6 @@ export interface Line {
     conversationId: number;
     startMs: number;
     endMs: number;
-    rawText: string;
+    subtitleEventJson: string;
     displayText: string;
 }
