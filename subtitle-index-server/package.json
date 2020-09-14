@@ -1,5 +1,5 @@
 {
-  "name": "subtitle-index",
+  "name": "subtitle-index-server",
   "version": "0.0.1",
   "description": "Allows text-based searching of subtitles from your media library",
   "main": "index.js",
