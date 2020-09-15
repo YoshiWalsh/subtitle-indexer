@@ -3,6 +3,7 @@ CREATE TABLE `settings` (
     setting TEXT NOT NULL,
     value TEXT NOT NULL
 );
+CREATE INDEX `settings_setting_idx` ON settings(setting);
 
 CREATE TABLE `libraries` (
     id INTEGER PRIMARY KEY,
@@ -40,6 +41,7 @@ CREATE TABLE `tracks` (
     UNIQUE(fileId, trackNumber),
     CONSTRAINT fk_track_file FOREIGN KEY(fileId) REFERENCES files(id) ON DELETE CASCADE
 );
+CREATE INDEX `tracks_file_idx` ON tracks(fileId);
 
 CREATE TABLE `conversations` (
     id INTEGER PRIMARY KEY,
@@ -47,6 +49,7 @@ CREATE TABLE `conversations` (
     indexedText TEXT,
     CONSTRAINT fk_conversation_track FOREIGN KEY(trackId) REFERENCES tracks(id) ON DELETE CASCADE
 );
+CREATE INDEX `conversations_track_idx` ON conversations(trackId);
 
 CREATE TABLE `lines` (
     id INTEGER PRIMARY KEY,
@@ -57,12 +60,20 @@ CREATE TABLE `lines` (
     displayText TEXT,
     CONSTRAINT fk_line_conversation FOREIGN KEY(conversationId) REFERENCES conversations(id) ON DELETE CASCADE
 );
+CREATE INDEX `lines_conversation_idx` ON lines(conversationId);
 
 -- Down
 DROP TABLE `lines`;
 DROP TABLE `conversations`;
 DROP TABLE `tracks`;
+DROP INDEX `lines_conversation_idx`;
+DROP INDEX `conversations_track_idx`;
+DROP INDEX `tracks_file_idx`;
+DROP INDEX `file_indexed_idx`;
+DROP INDEX `file_stillExists_idx`;
+DROP INDEX `file_library_idx`;
 DROP INDEX `file_path_idx`;
 DROP TABLE `files`;
 DROP TABLE `libraries`;
 DROP TABLE `settings`;
+DROP INDEX `settings_setting_idx`;

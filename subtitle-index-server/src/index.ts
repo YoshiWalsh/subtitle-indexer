@@ -2,14 +2,17 @@ require('dotenv').config();
 
 import { db } from './initialiseDb';
 import { performScans } from './scanner';
-import { getFolders, search } from './api';
+import './api';
 
-performScans().then(() => {
-    console.log("Done");
-});
+async function scanLoop() {
+    while(true) {
+        await performScans();
+        await new Promise(resolve => setTimeout(resolve, 1000*60*5));
+    }
+}
 
-getFolders();
-
-search("percent", {file: [{libraryId: 2, filePath: 'Dr. Stone/'}]}).then(results => {
-    console.log(results);
+scanLoop().then(() => {
+    console.log("The end of eternity has been reached");
+}, err => {
+    console.error("Scan loop exited with error", err);
 });
