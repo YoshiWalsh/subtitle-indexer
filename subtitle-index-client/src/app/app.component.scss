@@ -1,0 +1,106 @@
+$breakpoint: 800px;
+
+.window {
+    --module-width: 100vw;
+    @media (min-width: $breakpoint) {
+        --module-width: 50vw;
+    }
+
+
+    position: relative;
+    width: var(--module-width);
+    height: 100vh;
+    overflow: hidden;
+
+    > .back, > .forward {
+        position: absolute;
+        top: 0;
+        z-index: 1000;
+    }
+
+    > .back {
+        left: 0;
+    }
+
+    > .forward {
+        right: 0;
+    }
+}
+
+.modulesContainer {
+    position: relative;
+    left: calc(var(--module-width) * var(--current-module) * -1);
+    transition: left 0.5s ease-in-out;
+}
+
+.module {
+    position: absolute;
+    width: var(--module-width);
+    height: 100vh;
+    border-right: 2px solid black;
+    font-size: 1rem;
+
+    padding-top: 1rem;
+}
+
+@for $i from 0 to 3 {
+    .module:nth-child(#{$i + 1}) {
+        left: $i * 100vw;
+
+        @media (min-width: $breakpoint) {
+            left: $i * 50vw;
+        }
+    }
+
+}
+
+@media (min-width: $breakpoint) {
+    .window {
+        padding-left: 50vw;
+    }
+
+    .module.search {
+        margin-left: -50vw;
+        width: 100vw;
+
+        .filters, .results {
+            float: left;
+            height: 100%;
+            width: 50%;
+        }
+    }
+}
+
+
+.module.search .results {
+    .preview {
+        font-size: 0;
+        .segment {
+            font-size: 1rem;
+            &.highlight {
+                background: yellow;
+            }
+        }
+    }
+}
+
+.module.edit {
+    .lines {
+        height: 100vh;
+        overflow-y: scroll;
+
+        .line {
+            &.highlight {
+                background: yellow;
+            }
+
+            input[type="checkbox"] {
+                width: 20px;
+            }
+
+            input[type="text"] {
+                width: calc(100% - 50px);
+            }
+        }
+    }
+}

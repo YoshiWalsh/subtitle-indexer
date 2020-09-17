@@ -208,7 +208,7 @@ interface RenderRequestBase {
         comment: Array<ParsedASSEvent>,
         format: Array<string>,
     },
-    lines: Array<ParsedASSEvent>,
+    dialogueEvents: Array<ParsedASSEvent>,
     videoTrackId: number,
     audioTrackId?: number,
 };
@@ -285,7 +285,7 @@ app.post('/api/render', async (req, res) => {
         ...payload.preamble,
         events: {
             ...payload.nondialogueEvents,
-            dialogue: payload.lines.map(l => ({
+            dialogue: payload.dialogueEvents.map(l => ({
                 ...l,
                 Text: {
                     raw: l.Text.raw, // I wish this worked
@@ -340,7 +340,7 @@ app.post('/api/render', async (req, res) => {
         // TODO: Run a scheduled task to delete outdated output files
 
         res.send({
-            "outputFile": payloadHash + "." + payload.outputFormat,
+            "outputFile": "/output/" + payloadHash + "." + payload.outputFormat,
         });
     } catch (ex) {
 
