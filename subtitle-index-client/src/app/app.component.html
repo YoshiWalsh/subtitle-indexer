@@ -27,6 +27,8 @@
       <div class="lines">
         <div *ngFor="let line of editing.subtitleTrackDialogue" [ngClass]="{'line': true, 'highlight': line.conversationId == editing.conversationId}">
           <input type="checkbox" [(ngModel)]="line.selected" />
+          <input type="number" [(ngModel)]="line.event.Start" min=0 max=none step=0.01  />
+          <input type="number" [(ngModel)]="line.event.End" min=0 max=none step=0.01 />
           <input type="text" [(ngModel)]="line.event.Text.raw" />
         </div>
       </div>
@@ -35,13 +37,14 @@
       <div>
         Video track:
         <select [(ngModel)]="editing.videoTrackId">
-          <option *ngFor="let track of editing.videoTracks; index as i" [ngValue]="track.id">{{i}} - {{track.title}} ({{track.language}})</option>
+          <option *ngFor="let track of editing.videoTracks" [ngValue]="track.id">#{{track.trackNumber}} - {{track.title}} ({{track.language}})</option>
         </select>
       </div>
       <div>
         Audio track:
         <select [(ngModel)]="editing.audioTrackId">
-          <option *ngFor="let track of editing.audioTracks; index as i" [ngValue]="track.id">{{i}} - {{track.title}} ({{track.language}})</option>
+          <option [ngValue]="null">None</option>
+          <option *ngFor="let track of editing.audioTracks" [ngValue]="track.id">#{{track.trackNumber}} - {{track.title}} ({{track.language}})</option>
         </select>
       </div>
       <div>

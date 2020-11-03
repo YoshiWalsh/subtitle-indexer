@@ -313,10 +313,10 @@ app.post('/api/render', async (req, res) => {
             ...(isStill(payload) ? {} : { t: payload.endSeconds - payload.startSeconds }),
         });
 
-        if(audioStream) {
+        if(audioStream && !isStill(payload)) {
             ffmpeg.createInputFromFile(path.resolve(libraryRoot, audioStream.libraryPath, audioStream.filePath), {
                 ss: payload.startSeconds,
-                ...(isStill(payload) ? {} : { t: payload.endSeconds - payload.startSeconds }),
+                t: payload.endSeconds - payload.startSeconds,
             });
         }
 
@@ -325,9 +325,35 @@ app.post('/api/render', async (req, res) => {
             .replace(/:/g, "\\:") // Escape filter argument separators
             .replace(/\\/g, "\\\\"); // Escape filter_complex argument
 
+        let encoderParameters: Record<string, string | number | boolean | null | undefined | Array<string | null | undefined>> = {};
+        switch(payload.outputFormat) {
+            case "mp4":
+                encoderParameters = {
+                    ...encoderParameters,
+                    'c:v': 'libx264',
+                    tune: 'animation',
+                    crf: 16,
+                };
+                break;
+            case "webm":
+                encoderParameters = {
+                    ...encoderParameters,
+                    'c:v': 'libvpx',
+                    crf: 6,
+                    'b:v': '1M'
+                };
+                break;
+            default:
+                break;
+        }
+
+        if(isStill(payload)) {
+            encoderParameters['frames:v'] = 1;
+        }
+
         ffmpeg.createOutputToFile(path.resolve(outputDirectory, payloadHash + "." + payload.outputFormat), {
             filter_complex: `[0:${videoStream.streamIndex}]ass=${escapedSubtitlePath}[v]`,
-            ...(isStill(payload) ? { 'frames:v': 1 } : {}),
+            ...encoderParameters,
             map: [
                 '[v]',
                 ...(audioStream && !isStill(payload) ? [`1:${audioStream.streamIndex}`] : []),
@@ -348,6 +374,11 @@ app.post('/api/render', async (req, res) => {
     } catch (ex) {
 
         tempFile.cleanup();
+
+        res.status(500).send({
+            message: "Encountered an error while rendering video",
+            details: ex,
+        });
     } finally {
     }
 });

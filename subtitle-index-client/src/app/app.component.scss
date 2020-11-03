@@ -73,6 +73,7 @@ $breakpoint: 800px;
 
 
 .module.search .results {
+    overflow-y: scroll;
     .preview {
         font-size: 0;
         .segment {
@@ -98,8 +99,12 @@ $breakpoint: 800px;
                 width: 20px;
             }
 
+            input[type="number"] {
+                width: 100px;
+            }
+
             input[type="text"] {
-                width: calc(100% - 50px);
+                width: calc(100% - 250px);
             }
         }
     }
