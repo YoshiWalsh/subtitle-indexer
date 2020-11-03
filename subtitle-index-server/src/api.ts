@@ -293,8 +293,8 @@ app.post('/api/render', async (req, res) => {
                     parsed: parseAssText(l.Text.raw), // Because then we wouldn't have to do this,
                     combined: "", // This is pointless
                 },
-                Start: l.Start - payload.startSeconds,
-                End: l.End - payload.startSeconds,
+                Start: Math.max(l.Start - payload.startSeconds, 0),
+                End: Math.max(l.End - payload.startSeconds, 0),
             }))
         },
     });
