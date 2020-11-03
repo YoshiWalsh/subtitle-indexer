@@ -313,10 +313,10 @@ app.post('/api/render', async (req, res) => {
             ...(isStill(payload) ? {} : { t: payload.endSeconds - payload.startSeconds }),
         });
 
-        if(audioStream) {
+        if(audioStream && !isStill(payload)) {
             ffmpeg.createInputFromFile(path.resolve(libraryRoot, audioStream.libraryPath, audioStream.filePath), {
                 ss: payload.startSeconds,
-                ...(isStill(payload) ? {} : { t: payload.endSeconds - payload.startSeconds }),
+                t: payload.endSeconds - payload.startSeconds,
             });
         }
 
