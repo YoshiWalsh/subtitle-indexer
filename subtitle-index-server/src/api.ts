@@ -328,8 +328,10 @@ app.post('/api/render', async (req, res) => {
         ffmpeg.createOutputToFile(path.resolve(outputDirectory, payloadHash + "." + payload.outputFormat), {
             filter_complex: `[0:${videoStream.streamIndex}]ass=${escapedSubtitlePath}[v]`,
             ...(isStill(payload) ? { 'frames:v': 1 } : {}),
-            map: '[v]',
-            //...(audioStream ? { map: `1:${audioStream.streamIndex}` } : {}), // Temporarily disabled, see https://github.com/phaux/node-ffmpeg-stream/issues/25
+            map: [
+                '[v]',
+                ...(audioStream && !isStill(payload) ? [`1:${audioStream.streamIndex}`] : []),
+            ],
             map_metadata: -1,
             map_chapters: -1,
         });
