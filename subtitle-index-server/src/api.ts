@@ -250,6 +250,7 @@ function parseAssText(text: string) {
 } 
 
 app.post('/api/render', async (req, res) => {
+    req.setTimeout(1000*60*60*10);
     const payload: RenderRequest = req.body;
 
     const payloadHash = createHash('sha256')
