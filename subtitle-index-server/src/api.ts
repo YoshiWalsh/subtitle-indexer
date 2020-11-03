@@ -372,6 +372,11 @@ app.post('/api/render', async (req, res) => {
     } catch (ex) {
 
         tempFile.cleanup();
+
+        res.status(500).send({
+            message: "Encountered an error while rendering video",
+            details: ex,
+        });
     } finally {
     }
 });
