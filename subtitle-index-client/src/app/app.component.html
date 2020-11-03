@@ -37,13 +37,13 @@
       <div>
         Video track:
         <select [(ngModel)]="editing.videoTrackId">
-          <option *ngFor="let track of editing.videoTracks; index as i" [ngValue]="track.id">{{i}} - {{track.title}} ({{track.language}})</option>
+          <option *ngFor="let track of editing.videoTracks" [ngValue]="track.id">#{{track.trackNumber}} - {{track.title}} ({{track.language}})</option>
         </select>
       </div>
       <div>
         Audio track:
         <select [(ngModel)]="editing.audioTrackId">
-          <option *ngFor="let track of editing.audioTracks; index as i" [ngValue]="track.id">{{i}} - {{track.title}} ({{track.language}})</option>
+          <option *ngFor="let track of editing.audioTracks" [ngValue]="track.id">#{{track.trackNumber}} - {{track.title}} ({{track.language}})</option>
         </select>
       </div>
       <div>
