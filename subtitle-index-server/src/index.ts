@@ -6,7 +6,11 @@ import './api';
 
 async function scanLoop() {
     while(true) {
-        await performScans();
+        try {
+            await performScans();
+        } catch (ex) {
+            console.error("Scan failed!", ex);
+        }
         await new Promise(resolve => setTimeout(resolve, 1000*60*5));
     }
 }
