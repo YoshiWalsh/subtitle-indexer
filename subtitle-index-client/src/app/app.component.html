@@ -43,6 +43,7 @@
       <div>
         Audio track:
         <select [(ngModel)]="editing.audioTrackId">
+          <option [ngValue]="null">None</option>
           <option *ngFor="let track of editing.audioTracks" [ngValue]="track.id">#{{track.trackNumber}} - {{track.title}} ({{track.language}})</option>
         </select>
       </div>
