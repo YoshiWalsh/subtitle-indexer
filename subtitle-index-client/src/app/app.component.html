@@ -27,6 +27,8 @@
       <div class="lines">
         <div *ngFor="let line of editing.subtitleTrackDialogue" [ngClass]="{'line': true, 'highlight': line.conversationId == editing.conversationId}">
           <input type="checkbox" [(ngModel)]="line.selected" />
+          <input type="number" [(ngModel)]="line.event.Start" min=0 max=none step=0.01  />
+          <input type="number" [(ngModel)]="line.event.End" min=0 max=none step=0.01 />
           <input type="text" [(ngModel)]="line.event.Text.raw" />
         </div>
       </div>
