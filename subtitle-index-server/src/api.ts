@@ -354,6 +354,7 @@ app.post('/api/render', async (req, res) => {
         ffmpeg.createOutputToFile(path.resolve(outputDirectory, payloadHash + "." + payload.outputFormat), {
             filter_complex: `[0:${videoStream.streamIndex}]ass=${escapedSubtitlePath}[v]`,
             ...encoderParameters,
+            ac: 2,
             map: [
                 '[v]',
                 ...(audioStream && !isStill(payload) ? [`1:${audioStream.streamIndex}`] : []),
