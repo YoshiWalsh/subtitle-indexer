@@ -133,7 +133,8 @@ async function search(phrase: string, filters: Filters) {
         FROM conversations_fts
             INNER JOIN conversations ON (conversations_fts.rowid = conversations.id)
             INNER JOIN tracks ON (conversations.trackId = tracks.id)
-            INNER JOIN files ON (tracks.fileId = files.id)
+            INNER JOIN files ON (tracks.fileId = files.id AND files.stillExists)
+            INNER JOIN libraries ON (files.libraryId = libraries.id AND libraries.stillExists AND libraries.searchByDefault)
         WHERE conversations_fts.indexedText MATCH ?
             ${conditions}
         ORDER BY relevance;
