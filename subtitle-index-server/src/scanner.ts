@@ -13,6 +13,7 @@ import { duration } from 'moment';
 
 import { db } from './initialiseDb';
 import { Conversation, Existing, Library, LibraryFile, Line, Track } from './model';
+import { ProxiedFile } from './ProxiedFile';
 
 const libraryRoot = process.env.ROOT_DIRECTORY || ".";
 const conversationMaxPauseTime = 1.5;
@@ -219,7 +220,25 @@ export async function indexFile(library: Existing<Library>, file: Existing<Libra
     });
 
     const absolutePath = path.resolve(libraryRoot, library.path, file.path);
-    const ffprobeResult = await ffprobe(absolutePath, ffprobeOptions).then(r => r, err => null);
+
+    const proxiedFile = new ProxiedFile(absolutePath);
+
+    // ffmpeg/ffprobe are unable to handle long paths. Symlinks can be used to get around
+    // this limitation, but they require admin access (or SeCreateSymbolicLinkPrivilege).
+    if(process.env.SYMLINK_LOCATION) {
+        try {
+            // Delete the symlink if it already exists
+            await fs.unlink(process.env.SYMLINK_LOCATION);
+        } catch (ex) {
+            // Ignore error if it didn't exist
+        }
+
+        await fs.symlink(absolutePath, process.env.SYMLINK_LOCATION);
+        proxiedFile.path = process.env.SYMLINK_LOCATION;
+    }
+    const ffprobeResult = await ffprobe(proxiedFile.path, ffprobeOptions).then(r => r, err => {
+        console.warn("Error from ffprobe ", err);
+    });
 
     console.log("Indexing file", absolutePath);
 
@@ -245,7 +264,7 @@ export async function indexFile(library: Existing<Library>, file: Existing<Libra
             const trackId = db.insert('tracks', track);
 
             if(type === "subtitle") {
-                await indexTrack(absolutePath, trackId, stream.index);
+                await indexTrack(proxiedFile.path, trackId, stream.index);
             }
         }
     }
@@ -254,6 +273,8 @@ export async function indexFile(library: Existing<Library>, file: Existing<Libra
     }, {
         id: file.id,
     });
+
+    proxiedFile.destroy();
 }
 
 async function indexTrack(path: string, trackId: number, streamIndex: number) {

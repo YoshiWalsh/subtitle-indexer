@@ -11,6 +11,7 @@ import { app } from './server';
 import { Stream } from 'stream';
 import { createHash } from 'crypto';
 import { SourceMapPayload } from 'module';
+import { ProxiedFile } from './ProxiedFile';
 
 const libraryRoot = process.env.ROOT_DIRECTORY || "./data/library";
 const outputDirectory = process.env.OUTPUT_DIRECTORY || "./data/output";
@@ -305,19 +306,24 @@ app.post('/api/render', async (req, res) => {
     try {
         await fs.writeFile(tempFile.path, assString);
 
+        const includeAudio = audioStream && !isStill(payload);
+
+        const proxiedVideoFile = new ProxiedFile(path.resolve(libraryRoot, videoStream.libraryPath, videoStream.filePath));
+        const proxiedAudioFile = includeAudio ? new ProxiedFile(path.resolve(libraryRoot, audioStream!.libraryPath, audioStream!.filePath)) : null;
+
         const ffmpeg = new FFMPEG();
 
-        ffmpeg.createInputFromFile(path.resolve(libraryRoot, videoStream.libraryPath, videoStream.filePath), {
+        ffmpeg.createInputFromFile(proxiedVideoFile.path, {
             nostdin: true,
             y: true,
             ss: payload.startSeconds,
             ...(isStill(payload) ? {} : { t: payload.endSeconds - payload.startSeconds }),
         });
 
-        if(audioStream && !isStill(payload)) {
-            ffmpeg.createInputFromFile(path.resolve(libraryRoot, audioStream.libraryPath, audioStream.filePath), {
+        if(includeAudio) {
+            ffmpeg.createInputFromFile(proxiedAudioFile!.path, {
                 ss: payload.startSeconds,
-                t: payload.endSeconds - payload.startSeconds,
+                t: (payload as RenderRequestVideo).endSeconds - payload.startSeconds,
             });
         }
 
@@ -373,6 +379,9 @@ app.post('/api/render', async (req, res) => {
         res.send({
             "outputFile": "/output/" + payloadHash + "." + payload.outputFormat,
         });
+
+        proxiedVideoFile.destroy();
+        proxiedAudioFile?.destroy();
     } catch (ex) {
 
         tempFile.cleanup();
