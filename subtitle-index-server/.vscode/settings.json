@@ -4,7 +4,7 @@
             "previewLimit": 50,
             "driver": "SQLite",
             "name": "SQLite DB",
-            "database": "${workspaceFolder:subtitle-index}/data/sqlite3.db"
+            "database": "${workspaceFolder}/data/sqlite3.db"
         }
     ],
     "sqltools.useNodeRuntime": true
