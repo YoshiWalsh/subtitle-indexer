@@ -26,7 +26,7 @@ export class ProxiedFile {
                 try {
                     symlink(this.underlyingPath, this.path);
                     this.symlinkUsed = true;
-                } catch (ex) {
+                } catch (ex: any) {
                     if(ex?.code !== 'EEXIST') {
                         throw ex;
                     }
