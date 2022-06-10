@@ -1,7 +1,7 @@
 import * as crypto from 'crypto';
 import { promises as fs, createReadStream } from 'fs';
 import * as path from 'path';
-import { Stream } from 'stream';
+import { Readable, Stream } from 'stream';
 import { demand } from 'ts-demand';
 import { default as ffprobe } from 'ffprobe';
 import { path as ffprobeStatic } from 'ffprobe-static';
@@ -213,6 +213,11 @@ export async function indexFiles() {
     }
 }
 
+interface TrackToIndex {
+    trackId: number;
+    streamIndex: number;
+}
+
 export async function indexFile(library: Existing<Library>, file: Existing<LibraryFile>) {
     // Delete existing data for this file
     db.delete('tracks', {
@@ -243,6 +248,8 @@ export async function indexFile(library: Existing<Library>, file: Existing<Libra
     console.log("Indexing file", absolutePath);
 
     const streams = ffprobeResult?.streams || [];
+
+    const subtitleTracks: Array<TrackToIndex> = [];
     for(const stream of streams) {
         const type = {
             "video": "video",
@@ -264,10 +271,14 @@ export async function indexFile(library: Existing<Library>, file: Existing<Libra
             const trackId = db.insert('tracks', track);
 
             if(type === "subtitle") {
-                await indexTrack(proxiedFile.path, trackId, stream.index);
+                subtitleTracks.push({
+                    trackId,
+                    streamIndex: stream.index,
+                });
             }
         }
     }
+    await indexTracks(proxiedFile.path, subtitleTracks);
     db.update<Partial<LibraryFile>>('files', {
         indexed: 1,
     }, {
@@ -277,21 +288,42 @@ export async function indexFile(library: Existing<Library>, file: Existing<Libra
     proxiedFile.destroy();
 }
 
-async function indexTrack(path: string, trackId: number, streamIndex: number) {
+async function indexTracks(path: string, tracksToIndex: Array<TrackToIndex>) {
+    try {
+        const ffmpeg = new FFMPEG();
+
+        ffmpeg.createInputFromFile(path, {});
+
+        const trackIndexingPromises = tracksToIndex.map(trackToIndex => {
+            const outputStream = ffmpeg.createOutputStream({
+                map: `0:${trackToIndex.streamIndex}`,
+                f: 'ass',
+            });
+            return indexTrack(trackToIndex.trackId, outputStream);
+        });
+
+        await ffmpeg.run();
+        console.log("ffmpeg complete, parsing ASS");
+        await Promise.all(trackIndexingPromises);
+    } catch (err) {
+        console.warn(err);
+    }
+}
+
+async function indexTrack(trackId: number, trackStream: Readable) {
     const ffmpeg = new FFMPEG();
     
     try {
         let rawAss = "";
 
-        ffmpeg.createInputFromFile(path, {});
-        ffmpeg.createOutputStream({
-            map: `0:${streamIndex}`,
-            f: 'ass',
-        }).on('data', (chunk: Buffer) => {
+        trackStream.on('data', (chunk: Buffer) => {
             rawAss += chunk.toString("utf8");
         });
     
-        await ffmpeg.run();
+        await new Promise((resolve, reject) => {
+            trackStream.on('end', resolve);
+            trackStream.on('error', reject);
+        });
 
         const parsedAss = parseAss(rawAss);
         const dialogue = parsedAss.events.dialogue.sort((a, b) => a.Start - b.Start);
